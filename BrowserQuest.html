@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="UTF-8"><title>ブラウザクエスト - 竜王討伐の章</title>
+<style>
+body{background:#0a0a0a;color:#eee;font-family:'Courier New',monospace,"MS Gothic","ＭＳ ゴシック";padding:20px;line-height:1.6;overflow-x:hidden;margin:0}
+.box{border:2px solid #ddd;border-radius:8px;padding:15px;margin-bottom:15px;background:#111;position:relative;z-index:10;box-shadow:0 4px 15px rgba(0,0,0,0.8),inset 0 0 10px rgba(255,255,255,0.05)}
+.btn{background:#222;color:#eee;border:1px solid #aaa;border-radius:4px;padding:10px 18px;cursor:pointer;margin:5px;font-size:16px;transition:all .15s ease;box-shadow:0 2px 5px rgba(0,0,0,0.5)}
+.btn:hover:not(:disabled){background:#eee;color:#111;transform:translateY(-2px);box-shadow:0 4px 10px rgba(255,255,255,0.3)}
+.btn:active:not(:disabled){transform:translateY(1px);box-shadow:0 1px 2px rgba(255,255,255,0.2)}
+.btn:disabled{border-color:#444;color:#555;background:#111;cursor:not-allowed;box-shadow:none;transform:none}
+#log{height:260px;overflow-y:auto;white-space:pre-wrap;font-size:16.5px;padding:10px;background:#050505;border-radius:5px;border:1px solid #333;scroll-behavior:smooth}
+.flex-container{display:flex;gap:15px;flex-wrap:wrap}.panel{flex:1;min-width:250px}
+h2,h3{margin-top:0;color:#fff;text-shadow:0 0 5px rgba(255,255,255,0.3);letter-spacing:1px}
+.stage-area{padding:12px;border:1px solid #444;border-radius:5px;margin-bottom:12px;background:#151515}
+input{font-size:18px;padding:8px;text-align:center;margin-bottom:20px;background:#000;color:#fff;border:1px solid #aaa;border-radius:4px;box-shadow:inset 0 0 8px rgba(255,255,255,0.1)}
+#version-display{position:fixed;top:8px;right:12px;color:rgba(255,255,255,.3);font-size:13px;z-index:100000;pointer-events:none}
+.screen{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;z-index:10000;display:none;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+#title-screen h1{font-size:45px;margin-bottom:30px;color:#fff;text-shadow:0 0 15px red, 0 0 30px darkred;letter-spacing:3px}
+.king-title{color:gold;font-size:30px;margin-bottom:20px;text-shadow:0 0 10px goldenrod}
+.king-msg{font-size:19px;line-height:2.2;margin-bottom:35px;padding:0 20px;max-width:800px}
+#clear-screen{background:radial-gradient(ellipse at bottom,#1b2735 0%,#090a0f 100%);z-index:20000}
+#clear-title{font-size:65px;margin:0;color:#ffd700;text-shadow:0 0 20px #ff8c00,0 0 40px #ff8c00;animation:bounce 2s infinite,glow 1.5s infinite alternate}
+#clear-text{color:#fff;font-size:24px;line-height:2.2;text-shadow:0 0 8px #fff;margin-top:35px}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}
+@keyframes glow{0%{text-shadow:0 0 10px #ff8c00}100%{text-shadow:0 0 30px #ff8c00,0 0 50px #ffd700}}
+#rule-screen{background:rgba(0,0,0,.92);z-index:15000}
+#rule-content{max-width:650px;height:70vh;overflow-y:auto;line-height:1.9;font-size:16px;margin-bottom:20px;border:2px solid #ccc;padding:25px;border-radius:8px;background:#050505;box-shadow:0 0 20px rgba(255,255,255,.1)}
+#rule-content h3{color:gold;border-bottom:1px solid #555;padding-bottom:8px;margin-top:25px}
+#rule-content h3:first-child{margin-top:0}#rule-content ul{padding-left:25px}#rule-content li{margin-bottom:12px}
+#effect-layer{position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:9999;display:none;overflow:hidden}
+.effect-slash{background:linear-gradient(transparent 48%,#fff 49%,#fff 51%,transparent 52%);width:200%;height:200%;position:absolute;top:-50%;left:-50%;animation:slashAnim .3s ease-out forwards}
+.effect-critical{background:linear-gradient(transparent 45%,#ffeb3b 48%,#fff 50%,#ffeb3b 52%,transparent 55%);width:200%;height:200%;position:absolute;top:-50%;left:-50%;animation:slashAnim .4s ease-out forwards;box-shadow:inset 0 0 150px rgba(255,0,0,0.8)}
+.effect-flash{background:red;width:100%;height:100%;animation:flashAnim .2s ease-out forwards}
+.effect-hoimi{background:#8f8;width:100%;height:100%;animation:healAnim .6s ease-out forwards}
+.effect-rariho{background:rgba(128,0,128,.5);width:100%;height:100%;animation:waveAnim 1s ease-in-out forwards}
+.effect-mahoton{background:radial-gradient(circle,transparent 20%,#555 80%);width:100%;height:100%;animation:sealAnim .6s ease-in forwards}
+.effect-gira{background:transparent;width:100%;height:100%;position:absolute;top:0;left:0}
+.effect-gira::before{content:'';position:absolute;top:40%;left:-50%;width:200%;height:20%;background:linear-gradient(to bottom,transparent,#fa0,#f30,transparent);transform:rotate(-10deg);animation:giraLine .3s ease-out forwards;mix-blend-mode:screen}
+@keyframes giraLine{0%{transform:translateY(-50px) rotate(-10deg) scaleY(0);opacity:0}50%{transform:translateY(0) rotate(-10deg) scaleY(1);opacity:1}100%{transform:translateY(50px) rotate(-10deg) scaleY(0);opacity:0}}
+.effect-begirama{background:rgba(255,100,0,.2);width:100%;height:100%;position:absolute;animation:flashAnim .4s ease-out}
+.effect-begirama::before,.effect-begirama::after{content:'';position:absolute;width:200%;height:15%;background:linear-gradient(to bottom,transparent,#ffa,#f00,transparent);mix-blend-mode:screen}
+.effect-begirama::before{top:30%;left:-50%;transform:rotate(20deg);animation:begiBeam .2s ease-out 2}
+.effect-begirama::after{top:50%;left:-50%;transform:rotate(-20deg);animation:begiBeam .2s ease-out 2 reverse}
+@keyframes begiBeam{0%{opacity:0;transform:translateY(-50px) rotate(20deg) scaleY(.5)}50%{opacity:1;transform:translateY(0) rotate(20deg) scaleY(1.5)}100%{opacity:0;transform:translateY(50px) rotate(20deg) scaleY(.5)}}
+.effect-kaen{background:radial-gradient(circle at 50% 100%,#fff 0%,#f80 20%,#c30 40%,transparent 70%);width:100%;height:100%;position:absolute;bottom:-30%;left:0;animation:honooRise .5s ease-out forwards;mix-blend-mode:screen}
+.effect-honoo{background:radial-gradient(circle at 50% 100%,#fff 0%,#fc0 20%,#f30 50%,transparent 80%);width:100%;height:150%;position:absolute;bottom:-50%;left:0;animation:honooRise .6s ease-out forwards;mix-blend-mode:screen}
+@keyframes honooRise{0%{transform:translateY(20%) scale(.8);opacity:0}50%{opacity:1}100%{transform:translateY(-50%) scale(1.2);opacity:0}}
+@keyframes ryuouShake{0%,100%{transform:translate(0,0)}25%{transform:translate(-10px,5px)}50%{transform:translate(10px,-5px)}75%{transform:translate(-10px,-5px)}}
+.effect-ryuou-breath{background:repeating-radial-gradient(circle at 50% 100%,#fff,#ff0 5%,#f30 15%,#600 30%,transparent 60%);width:100vw;height:100vh;position:fixed;top:0;left:0;animation:ryuouBreathAnim .8s ease-out forwards,ryuouShake .1s 8;mix-blend-mode:screen}
+@keyframes ryuouBreathAnim{0%{transform:scale(.8) translateY(20%);opacity:0}30%{opacity:1;background:rgba(255,50,0,.5)}70%{opacity:1;background:rgba(255,0,0,.3)}100%{transform:scale(1.5) translateY(-20%);opacity:0}}
+.effect-ryuou-attack{background:radial-gradient(circle,transparent 20%,rgba(50,0,100,.8) 80%);width:100%;height:100%;animation:flashAnim .4s ease-out,ryuouShake .15s 2}
+.effect-ryuou-attack::before,.effect-ryuou-attack::after,.effect-ryuou-attack .claw3{content:'';position:absolute;top:10%;width:15px;height:80%;background:#f0f;box-shadow:0 0 20px #c0c,0 0 40px #fff;border-radius:50%;animation:clawAnim .25s ease-out forwards}
+.effect-ryuou-attack::before{left:35%;transform:rotate(25deg)}
+.effect-ryuou-attack::after{left:50%;transform:rotate(30deg);animation-delay:.05s}
+.effect-ryuou-attack .claw3{left:65%;transform:rotate(35deg);animation-delay:.1s;display:block}
+@keyframes clawAnim{0%{transform:scaleY(0) rotate(30deg) translateY(-50px);opacity:0}50%{opacity:1}100%{transform:scaleY(1.2) rotate(30deg) translateY(50px);opacity:0}}
+@keyframes slashAnim{0%{transform:rotate(45deg) scale(0);opacity:1}100%{transform:rotate(45deg) scale(1.5);opacity:0}}
+@keyframes flashAnim{0%,100%{opacity:0}50%{opacity:.6}}
+@keyframes healAnim{0%,100%{opacity:0}30%{opacity:.4}}
+@keyframes waveAnim{0%,100%{opacity:0}50%{opacity:.7;transform:scale(1.05)}}
+@keyframes sealAnim{0%{opacity:0;transform:scale(1.5)}50%{opacity:.8}100%{opacity:0;transform:scale(.5)}}
+.btn-continue{border-color:cyan;color:cyan;font-weight:bold;box-shadow:0 0 8px rgba(0,255,255,0.3)}
+.btn-save{border-color:gold;color:gold;font-weight:bold;box-shadow:0 0 8px rgba(255,215,0,0.3)}
+.btn-rule{border-color:#8cf;color:#8cf}
+</style></head>
+<body>
+<div id="version-display">version 1.7</div>
+<div id="title-screen" class="screen" style="display:flex"><h1>ブラウザクエスト</h1><button class="btn" onclick="showNewGameScreen()">はじめから</button><button class="btn" onclick="showLoadGameScreen()">ぼうけんのしょから</button><br><br><button class="btn btn-rule" onclick="$id('rule-screen').style.display='flex'">遊び方・ルールを見る</button></div>
+<div id="new-game-screen" class="screen"><h2>あらたなる たびだち</h2><p>勇者の名前を入力してください（最大8文字）</p><input type="text" id="new-name" value="ロト" maxlength="8"><p>秘密のパスワードを決めてください</p><input type="password" id="new-pass" value=""><button class="btn" onclick="startNewGame()">決定</button><button class="btn" onclick="backToTitle()">戻る</button></div>
+<div id="load-game-screen" class="screen"><h2>ぼうけんのしょ を さがす</h2><p>記録した名前を入力してください</p><input type="text" id="load-name" maxlength="8"><p>記録したパスワードを入力してください</p><input type="password" id="load-pass"><br><button class="btn" onclick="loadGame()">再開する</button><button class="btn" onclick="backToTitle()">戻る</button></div>
+<div id="king-screen" class="screen"><h2 class="king-title">ラダトームの王</h2><div id="king-text" class="king-msg"></div><button class="btn" onclick="finishKingPhase()">冒険へ出発する</button></div>
+<div id="dead-king-screen" class="screen"><h2 class="king-title">ラダトームの王</h2><div id="dead-king-text" class="king-msg"></div><button class="btn" onclick="finishDeadKingPhase()">冒険を再開する</button></div>
+
+<div id="ryuou-event-screen" class="screen">
+    <div id="ryuou-msg" class="king-msg" style="text-align:left; max-width:600px; margin:0 auto 30px;"></div>
+    <div id="ryuou-choices" style="display:flex; justify-content:center; gap:20px;">
+        <button class="btn" id="ry-yes" onclick="ryuouAns(true)">はい</button>
+        <button class="btn" id="ry-no" onclick="ryuouAns(false)">いいえ</button>
+    </div>
+    <button class="btn" id="ry-next" style="display:none;" onclick="ryuouNext()">▼</button>
+</div>
+
+<div id="clear-screen" class="screen"><h1 id="clear-title">CONGRATULATIONS!!</h1><div id="clear-text"></div></div>
+<div id="rule-screen" class="screen"><h2>遊び方・ルール</h2><div id="rule-content"><h3>◆ 基本の流れ</h3><p>街で準備を整え、探索エリアを選んでモンスターと戦います。<br>敵を倒して経験値とゴールドを稼ぎ、レベルアップや装備の購入で強くなりましょう。<br>最終目的地「竜王城」に潜む「竜王」を討伐すればゲームクリアです。</p><h3>◆ バトルコマンド</h3><ul><li><b>攻撃:</b> 武器で敵を攻撃。たまに会心の一撃。</li><li><b>呪文/道具:</b> MP消費で魔法、またはアイテム使用。</li><li><b>防御:</b> 次の敵ターンの被ダメージ半減。</li><li><b>薬草:</b> HP回復。</li><li><b>逃げる:</b> 戦闘離脱（ボス不可）。</li></ul><h3>◆ 施設とセーブ</h3><ul><li><b>武器・防具屋:</b> 装備購入。</li><li><b>宿屋:</b> HP・MP全回復。</li><li><b>もちもの:</b> 装備の変更やアイテム使用・売却。</li><li><b>冒険の書に記録する:</b> パスワードと共にブラウザに保存。</li></ul></div><button class="btn" onclick="$id('rule-screen').style.display='none'">閉じる</button></div>
+<div id="effect-layer"></div>
+
+<div class="flex-container"><div class="box panel" id="status-panel"><h2>ステータス</h2><div id="status-text" style="font-size:17px;line-height:1.8"></div></div><div class="box panel" id="enemy-panel" style="display:none"><h2>モンスター</h2><div id="enemy-text" style="font-size:17px;line-height:1.8"></div></div></div>
+<div class="box"><div id="log"></div></div>
+
+<div class="box" id="main-commands" style="display:none"><div id="stage-selection" class="stage-area"></div><div class="stage-area"><h3>街の施設</h3><button class="btn" onclick="openShop('w')">武器屋</button><button class="btn" onclick="openShop('a')">防具・道具屋</button><button class="btn" onclick="openInv()" style="border-color:#8cf;color:#8cf">もちもの</button><button class="btn" id="inn-btn" onclick="restAtInn()">宿屋</button><button class="btn btn-save" onclick="saveGame()">冒険の書に記録する</button><button class="btn btn-rule" onclick="$id('rule-screen').style.display='flex'">遊び方</button></div></div>
+<div class="box" id="battle-commands" style="display:none"><button class="btn" onclick="attack()">攻撃</button><button class="btn" onclick="showMagicMenu()">呪文/道具</button><button class="btn" onclick="defend()">防御</button><button class="btn" onclick="useItem()">薬草</button><button class="btn" onclick="runAway()">逃げる</button></div>
+<div class="box" id="magic-commands" style="display:none"><div id="magic-list"></div><br><button class="btn" onclick="hideMagicMenu()">戻る</button></div>
+<div class="box" id="post-battle-commands" style="display:none;border-color:cyan"><p>敵を退けた！ 次はどうする？</p><button class="btn btn-continue" onclick="encounter(cStg)">そのまま探索を続ける</button><button class="btn" onclick="returnToTown()">街に戻る</button></div>
+
+<div class="box" id="shop-panel" style="display:none"><h2 id="shop-title">店</h2><p id="shop-msg"></p><div id="shop-items" style="max-height:220px;overflow-y:auto;margin-bottom:15px;padding-right:10px"></div><div id="item-shop-btns" style="display:none;border-top:1px solid #555;padding-top:15px"><button class="btn" onclick="reqBuyPot()">薬草を買う (10 G)</button><button class="btn" id="torch-btn" onclick="reqBuyTor()">たいまつを買う</button></div><div id="confirm-panel" style="display:none;border-top:1px solid #555;padding-top:15px"><button class="btn btn-continue" id="shop-yes-btn" onclick="execBuy()">はい</button><button class="btn" id="shop-no-btn" onclick="cancelBuy(false)">いいえ</button></div><br><button class="btn" id="shop-close-btn" onclick="closeShop()">店を出る</button></div>
+<div class="box" id="inv-panel" style="display:none"><h2>もちもの</h2><div id="inv-list" style="max-height:280px;overflow-y:auto;margin-bottom:15px;padding-right:10px;color:#fff;"></div><button class="btn" onclick="closeInv()">戻る</button></div>
+
+<script>
+const $id=id=>document.getElementById(id);
+const AudioContext=window.AudioContext||window.webkitAudioContext;let audioCtx;
+function initAudio(){if(!audioCtx)audioCtx=new AudioContext();if(audioCtx.state==='suspended')audioCtx.resume();}
+function playSE(type){
+    if(!audioCtx)return;const now=audioCtx.currentTime;const osc=audioCtx.createOscillator();const gain=audioCtx.createGain();osc.connect(gain);gain.connect(audioCtx.destination);
+    if(type==='slash'){osc.type='sawtooth';osc.frequency.setValueAtTime(800,now);osc.frequency.exponentialRampToValueAtTime(100,now+.1);gain.gain.setValueAtTime(.3,now);gain.gain.exponentialRampToValueAtTime(.01,now+.1);osc.start(now);osc.stop(now+.1);}
+    else if(type==='hit'){osc.type='square';osc.frequency.setValueAtTime(150,now);osc.frequency.exponentialRampToValueAtTime(50,now+.1);gain.gain.setValueAtTime(.3,now);gain.gain.exponentialRampToValueAtTime(.01,now+.1);osc.start(now);osc.stop(now+.1);}
+    else if(type==='critical'){const p=(t)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sawtooth';o.frequency.setValueAtTime(1000,t);o.frequency.exponentialRampToValueAtTime(100,t+.1);g.gain.setValueAtTime(.4,t);g.gain.exponentialRampToValueAtTime(.01,t+.1);o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+.1);};p(now);p(now+.1);p(now+.2);}
+    else if(type==='fire'){osc.type='sawtooth';osc.frequency.setValueAtTime(150,now);osc.frequency.linearRampToValueAtTime(40,now+.4);gain.gain.setValueAtTime(.4,now);gain.gain.exponentialRampToValueAtTime(.01,now+.4);osc.start(now);osc.stop(now+.4);}
+    else if(type==='heal'||type==='save'){[523.25,659.25,783.99,1046.5].forEach((f,i)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.setValueAtTime(f,now+i*.08);g.gain.setValueAtTime(.1,now+i*.08);g.gain.exponentialRampToValueAtTime(.01,now+i*.08+.2);o.connect(g);g.connect(audioCtx.destination);o.start(now+i*.08);o.stop(now+i*.08+.2);});}
+    else if(type==='rariho'){osc.type='sine';const lfo=audioCtx.createOscillator();lfo.type='sine';lfo.frequency.value=10;const lG=audioCtx.createGain();lG.gain.value=50;lfo.connect(lG);lG.connect(osc.frequency);osc.frequency.setValueAtTime(500,now);osc.frequency.linearRampToValueAtTime(300,now+1.2);gain.gain.setValueAtTime(.2,now);gain.gain.linearRampToValueAtTime(.01,now+1.2);lfo.start(now);lfo.stop(now+1.2);osc.start(now);osc.stop(now+1.2);}
+    else if(type==='mahoton'){osc.type='square';osc.frequency.setValueAtTime(900,now);osc.frequency.exponentialRampToValueAtTime(50,now+.3);gain.gain.setValueAtTime(.2,now);gain.gain.exponentialRampToValueAtTime(.01,now+.3);osc.start(now);osc.stop(now+.3);}
+    else if(type==='inn'){let t=now;[{f:392,d:.15},{f:369.99,d:.15},{f:392,d:.15},{f:440,d:.15},{f:392,d:.15},{f:369.99,d:.15},{f:392,d:.15},{f:523.25,d:.5}].forEach(n=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.setValueAtTime(n.f,t);g.gain.setValueAtTime(.15,t);g.gain.linearRampToValueAtTime(.01,t+n.d);o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+n.d);t+=n.d;});}
+    else if(type==='levelUp'){let t=now;[{f:523.25,d:.1},{f:523.25,d:.1},{f:523.25,d:.1},{f:523.25,d:.2},{f:440,d:.2},{f:587.33,d:.2},{f:523.25,d:.5}].forEach(n=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.setValueAtTime(n.f,t);g.gain.setValueAtTime(.15,t);g.gain.linearRampToValueAtTime(0,t+n.d);o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+n.d);t+=n.d;});}
+    else if(type==='dead'){let t=now;[{f:349.23,d:.15},{f:329.63,d:.15},{f:293.66,d:.15},{f:261.63,d:.4},{f:329.63,d:.15},{f:293.66,d:.15},{f:261.63,d:.15},{f:246.94,d:.4},{f:293.66,d:.15},{f:261.63,d:.15},{f:246.94,d:.15},{f:220,d:1}].forEach(n=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.setValueAtTime(n.f,t);g.gain.setValueAtTime(.2,t);g.gain.linearRampToValueAtTime(.01,t+n.d);o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+n.d);t+=n.d;});}
+    else if(type==='run'){let t=now;[{f:400,d:.08},{f:350,d:.08},{f:300,d:.08},{f:250,d:.08}].forEach(n=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.setValueAtTime(n.f,t);g.gain.setValueAtTime(.15,t);g.gain.exponentialRampToValueAtTime(.01,t+n.d);o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+n.d);t+=n.d;});}
+    else if(type==='reset'){const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sawtooth';o.frequency.setValueAtTime(100,now);o.frequency.exponentialRampToValueAtTime(10,now+1);g.gain.setValueAtTime(0.5,now);g.gain.exponentialRampToValueAtTime(0.01,now+1);o.connect(g);g.connect(audioCtx.destination);o.start(now);o.stop(now+1);const bs=audioCtx.createBufferSource();const bf=audioCtx.createBuffer(1,audioCtx.sampleRate*0.5,audioCtx.sampleRate);const data=bf.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;bs.buffer=bf;const ng=audioCtx.createGain();ng.gain.setValueAtTime(0.6,now);ng.gain.exponentialRampToValueAtTime(0.01,now+0.5);bs.connect(ng);ng.connect(audioCtx.destination);bs.start(now);}
+}
+const eq={w:[{n:"ひのきのぼう",a:2,p:10},{n:"こんぼう",a:5,p:60},{n:"銅の剣",a:12,p:180},{n:"鉄の槍",a:22,p:500},{n:"鋼の剣",a:35,p:1500},{n:"はじゃの剣",a:55,p:3500},{n:"炎の剣",a:80,p:7500},{n:"ドラゴンキラー",a:110,p:12000},{n:"いなずまの剣",a:150,p:25000},{n:"ロトの剣",a:250,p:50000}],a:[{n:"布の服",d:2,p:10},{n:"皮の鎧",d:6,p:70},{n:"鎖かたびら",d:15,p:250},{n:"鉄の鎧",d:30,p:800},{n:"鋼の鎧",d:55,p:2000},{n:"魔法の鎧",d:85,p:5000},{n:"ドラゴンメイル",d:115,p:10000},{n:"刃の鎧",d:150,p:22000},{n:"ロトの鎧",d:300,p:45000}],s:[{n:"おなべのフタ",d:2,p:50},{n:"皮の盾",d:4,p:90},{n:"うろこの盾",d:7,p:180},{n:"鉄の盾",d:12,p:800},{n:"魔法の盾",d:20,p:2000},{n:"水鏡の盾",d:35,p:8000},{n:"ロトの盾",d:100,p:20000}]};
+let defBoss={25:false,30:false,38:false};
+const ms=[
+{n:"スライム",hp:10,a:6,d:2,s:5,ex:2,g:6,m:0,sp:[]},{n:"スライムベス",hp:13,a:8,d:3,s:6,ex:3,g:9,m:0,sp:[]},{n:"ドラキー",hp:16,a:10,d:4,s:12,ex:4,g:10,m:0,sp:[]},{n:"ゴースト",hp:20,a:12,d:6,s:8,ex:6,g:15,m:0,sp:[]},{n:"まほうつかい",hp:28,a:10,d:7,s:9,ex:12,g:18,m:10,sp:["ギラ"]},{n:"メイジドラキー",hp:35,a:16,d:10,s:18,ex:18,g:24,m:15,sp:["マホトーン","ギラ"]},{n:"おおさそり",hp:45,a:25,d:18,s:10,ex:25,g:38,m:0,sp:[]},{n:"がいこつ",hp:55,a:28,d:20,s:12,ex:30,g:45,m:0,sp:[]},{n:"てつのさそり",hp:65,a:35,d:35,s:14,ex:35,g:55,m:0,sp:[]},{n:"まどうし",hp:70,a:20,d:20,s:15,ex:40,g:60,m:15,sp:["ラリホー"]},{n:"リカント",hp:80,a:45,d:25,s:25,ex:45,g:50,m:0,sp:[]},{n:"しりょう",hp:90,a:50,d:30,s:20,ex:55,g:75,m:15,sp:["ホイミ"]},{n:"リカントマムル",hp:100,a:60,d:35,s:30,ex:65,g:65,m:0,sp:[]},{n:"ゴールドマン",hp:120,a:55,d:40,s:10,ex:70,g:2500,m:0,sp:[]},{n:"キメラ",hp:110,a:65,d:45,s:35,ex:80,g:100,m:15,sp:["ホイミ"]},{n:"メーダ",hp:125,a:70,d:50,s:22,ex:90,g:115,m:20,sp:["ギラ"]},{n:"ドロル",hp:140,a:75,d:55,s:18,ex:100,g:125,m:20,sp:["ラリホー"]},{n:"メトロゴースト",hp:150,a:80,d:60,s:28,ex:120,g:150,m:0,sp:[]},{n:"ドラキーマ",hp:160,a:85,d:65,s:40,ex:140,g:165,m:25,sp:["マホトーン","ベホイミ"]},{n:"ヘルゴースト",hp:175,a:95,d:70,s:35,ex:160,g:190,m:0,sp:[]},{n:"メーダロード",hp:190,a:105,d:75,s:38,ex:180,g:215,m:30,sp:["ベホイミ","ギラ"]},{n:"ドロルメイジ",hp:200,a:110,d:80,s:30,ex:200,g:240,m:30,sp:["ベギラマ","ラリホー"]},{n:"しりょうのきし",hp:220,a:125,d:90,s:45,ex:250,g:260,m:0,sp:[]},{n:"しのさそり",hp:240,a:135,d:100,s:40,ex:280,g:300,m:0,sp:[]},{n:"よろいのきし",hp:260,a:150,d:110,s:42,ex:310,g:340,m:0,sp:[]},{n:"ゴーレム",hp:480,a:180,d:130,s:20,ex:800,g:500,m:0,sp:[],b:true},{n:"かげのきし",hp:280,a:160,d:120,s:60,ex:350,g:250,m:0,sp:[]},{n:"メイジキメラ",hp:300,a:165,d:125,s:55,ex:380,g:310,m:40,sp:["ベホイミ"]},{n:"メタルスライム",hp:5,a:50,d:500,s:150,ex:2500,g:12,m:50,sp:["ギラ"]},{n:"キラーリカント",hp:320,a:180,d:135,s:70,ex:420,g:375,m:0,sp:[]},{n:"ドラゴン",hp:700,a:220,d:160,s:50,ex:1200,g:1250,m:0,sp:["かえんのいき","はげしいほのお"],b:true},{n:"だいまどう",hp:350,a:150,d:140,s:65,ex:500,g:500,m:60,sp:["ベギラマ","マホトーン"]},{n:"スターキメラ",hp:380,a:200,d:150,s:80,ex:550,g:560,m:40,sp:["ベホイミ"]},{n:"あくまのきし",hp:420,a:230,d:160,s:75,ex:600,g:625,m:20,sp:["ラリホー"]},{n:"キースドラゴン",hp:500,a:260,d:180,s:60,ex:800,g:750,m:0,sp:["かえんのいき","はげしいほのお"]},{n:"ストーンマン",hp:550,a:280,d:210,s:40,ex:900,g:875,m:0,sp:[]},{n:"しにがみのきし",hp:600,a:300,d:200,s:85,ex:1000,g:1000,m:0,sp:[]},{n:"ダースドラゴン",hp:700,a:330,d:220,s:75,ex:1200,g:1250,m:40,sp:["ベギラマ","はげしいほのお"]},{n:"りゅうおう",hp:1350,a:370,d:260,s:90,ex:0,g:0,m:200,sp:["ベギラマ"],b:true},{n:"竜王",hp:2500,a:400,d:250,s:120,ex:0,g:0,m:999,sp:["かえんのいき","はげしいほのお","マホトーン"],b:true,tf:true,act:2}
+];
+const stg=[{n:"ラダトーム城周辺",l:1,e:[0,1,2,3]},{n:"ロトの洞窟",l:3,e:[4,5]},{n:"ガライの町周辺",l:6,e:[6,7,8]},{n:"沼地の洞窟",l:9,e:[9,10,11]},{n:"岩山の洞窟",l:12,e:[12,13,14,15,16]},{n:"ドワーフの洞窟",l:15,e:[17,18,19,20,21]},{n:"妖精の村",l:18,e:[22,23,24],b:25},{n:"竜の棲む山",l:22,e:[26,27,29],b:30},{n:"竜王城",l:26,e:[31,32,33,34,35,36,37]},{n:"竜王の間",l:30,e:[],b:38}];
+const mgD={"ギラ":{c:5,ef:"effect-gira"},"ベギラマ":{c:12,ef:"effect-begirama"},"ホイミ":{c:4,ef:"effect-hoimi"},"ベホイミ":{c:10,ef:"effect-behoimi"},"ラリホー":{c:6,ef:"effect-rariho"},"マホトーン":{c:5,ef:"effect-mahoton"},"かえんのいき":{c:0,ef:"effect-kaen"},"はげしいほのお":{c:0,ef:"effect-honoo"}};
+let p={name:"勇者",level:1,hp:35,maxHp:35,mp:0,maxMp:0,atk:5,def:3,spd:8,exp:0,gold:120,pot:5,tor:2,wN:"素手",wA:0,aN:"布の服",aD:2,sN:"なし",sD:0,sp:[],defend:false,slp:0,sil:0,inv:{w:[],a:[],s:[]}};
+let pPass="",cMon=null,cStg=0,isAnim=false,innCd=0,torSt=10,batT=0,enAct=0,bTg=null;
+let ryStep=0;
+function getInnCost(){return 10+(p.level-1)*5;}
+function showNewGameScreen(){initAudio();$id("title-screen").style.display="none";$id("new-game-screen").style.display="flex";}
+function showLoadGameScreen(){initAudio();$id("title-screen").style.display="none";$id("load-game-screen").style.display="flex";}
+function backToTitle(){$id("new-game-screen").style.display="none";$id("load-game-screen").style.display="none";$id("title-screen").style.display="flex";}
+function startNewGame(){
+    let n=$id("new-name").value.trim(),pw=$id("new-pass").value.trim();if(n===""||pw==="")return alert("入力してください");p.name=n;pPass=pw;
+    if(p.name==="さいきょう"){
+        p.level=100;p.maxHp=p.hp=p.maxMp=p.mp=999;p.atk=250;p.def=150;p.spd=200;p.exp=80000;p.gold=99999;p.pot=p.tor=99;
+        p.wN="ロトの剣";p.wA=250;p.aN="ロトの鎧";p.aD=300;p.sN="ロトの盾";p.sD=100;p.sp=["ホイミ","ギラ","ラリホー","マホトーン","ベギラマ","ベホイミ"];
+        p.inv={w:[9],a:[8],s:[6]};
+    }else{
+        p.inv={w:[],a:[],s:[]};
+    }
+    $id("new-game-screen").style.display="none";$id("king-screen").style.display="flex";
+    $id("king-text").innerHTML=`おお ${p.name} よ！ よくぞきた。<br>竜王を討ち果たし世界に平和を取り戻してくれ！`;
+}
+function loadGame(){
+    let n=$id("load-name").value.trim(),pw=$id("load-pass").value.trim();if(n===""||pw==="")return alert("入力必須");
+    let sv=localStorage.getItem("bq_sv_"+n);if(!sv)return alert("データがありません");
+    let d=JSON.parse(sv);if(d.pw!==pw)return alert("パスワード違い");
+    pPass=d.pw;p=d.p;if(!p.sN){p.sN="なし";p.sD=0;}
+    if(!p.inv){p.inv={w:[],a:[],s:[]};let wI=eq.w.findIndex(e=>e.n===p.wN);if(wI>=0)p.inv.w.push(wI);let aI=eq.a.findIndex(e=>e.n===p.aN);if(aI>=0)p.inv.a.push(aI);let sI=eq.s.findIndex(e=>e.n===p.sN);if(sI>=0)p.inv.s.push(sI);}
+    defBoss=d.dB;torSt=d.tS!==undefined?d.tS:10;batT=d.bT||0;innCd=d.iC||0;
+    $id("load-game-screen").style.display="none";$id("main-commands").style.display="block";
+    playSE('save');logMsg(`\n王様「おお ${p.name} よ！ふたたび旅立つのだ！」`);renderMainCmds();updateUI();
+}
+function saveGame(){if(!pPass)return;localStorage.setItem("bq_sv_"+p.name,JSON.stringify({pw:pPass,p:p,dB:defBoss,tS:torSt,bT:batT,iC:innCd}));playSE('save');logMsg(`\n王様「記録したぞ！」`);updateUI();}
+function finishKingPhase(){$id("king-screen").style.display="none";$id("main-commands").style.display="block";logMsg(`${p.name} は旅に出た！`);renderMainCmds();updateUI();}
+function updateUI(){
+    let nx=p.level*p.level*8,ts=p.spd+Math.floor(p.level*1.8);
+    $id("status-text").style.color=p.hp<=0?"#ff4444":p.hp<=p.maxHp/3?"#ffaa00":"#fff";
+    let st=`【${p.name}】 Lv: ${p.level} (素早さ: ${ts})<br>HP: ${Math.max(0,p.hp)} / ${p.maxHp} | MP: ${Math.max(0,p.mp)} / ${p.maxMp}<br>攻: ${p.atk+p.wA} (${p.wN}) | 守: ${p.def+p.aD+p.sD} (${p.aN} / 盾:${p.sN})<br>EXP: ${p.exp} / ${nx} | G: ${p.gold}<br>薬草: ${p.pot} | たいまつ: ${p.tor}`;
+    if(p.sil>0)st+=`<br><span style="color:#aaa">※呪文封じ</span>`;$id("status-text").innerHTML=st;
+    if(cMon){let ms="";if(cMon.slp>0)ms+=" (睡眠)";if(cMon.sil>0)ms+=" (沈黙)";if(cMon.enr)ms+=" <span style='color:red'>(激怒)</span>";$id("enemy-panel").style.display="block";$id("enemy-text").innerHTML=`${cMon.n}${ms}<br>HP: ${Math.max(0,cMon.hp)} / ${cMon.maxHp}`;}
+    else $id("enemy-panel").style.display="none";
+    if(!cMon&&$id("main-commands").style.display!=="none")renderMainCmds();
+}
+function renderMainCmds(){
+    let h="<h3>探索エリア</h3>";
+    stg.forEach((s,i)=>{
+        if(p.level>=s.l){
+            if(s.b === 38) {
+                if(!defBoss[25] || !defBoss[30]) {
+                    h+=`<button class="btn" disabled>竜王の間 (ゴーレム・ドラゴン討伐必須)</button>`;
+                } else if(!defBoss[38]) {
+                    h+=`<button class="btn" onclick="encBoss(${i})" style="border-color:#f55;color:#f55">竜王の間に進む</button>`;
+                } else {
+                    h+=`<button class="btn" disabled>竜王討伐済</button>`;
+                }
+            } else {
+                if(s.e.length>0) h+=`<button class="btn" onclick="encounter(${i})">${s.n} (Lv${s.l}~)</button>`;
+                if(s.b!==undefined&&!defBoss[s.b]) h+=`<button class="btn" onclick="encBoss(${i})" style="border-color:#f55;color:#f55">${s.n}のボス</button>`;
+                else if(s.b!==undefined) h+=`<button class="btn" disabled>ボス(討伐済)</button>`;
+            }
+        }else h+=`<button class="btn" disabled>${s.n} (Lv${s.l}~)</button>`;
+    });
+    $id("stage-selection").innerHTML=h;const ib=$id("inn-btn");if(innCd>0){ib.innerHTML=`宿屋 (あと${innCd}戦)`;ib.disabled=true;}else{ib.innerHTML=`宿屋 (${getInnCost()} G)`;ib.disabled=false;}
+}
+function logMsg(m){const l=$id("log");l.innerHTML+=m+"<br>";l.scrollTop=l.scrollHeight;}
+function tglBtns(d){document.querySelectorAll('#battle-commands .btn, #magic-commands .btn').forEach(b=>b.disabled=d);isAnim=d;}
+function pEff(c,cb,w=300){const l=$id("effect-layer");l.className="";requestAnimationFrame(()=>{requestAnimationFrame(()=>{l.className=c;l.style.display="block";setTimeout(()=>{l.style.display="none";l.className="";if(cb)cb();},w);});});}
+function chkLvUp(){
+    let nx=p.level*p.level*8,up=false;
+    while(p.exp>=nx){
+        if(p.level>=150)break;p.level++;p.maxHp+=7+Math.floor(Math.random()*6);if(p.level>=4)p.maxMp+=1+Math.floor(Math.random()*3);p.atk+=3+Math.floor(Math.random()*3);p.def+=3;p.hp=p.maxHp;p.mp=p.maxMp;up=true;logMsg(`\n★ レベル ${p.level} になった！`);
+        [4,7,10,14,18,23].forEach((v,i)=>{let sn=["ホイミ","ギラ","ラリホー","マホトーン","ベギラマ","ベホイミ"][i];if(p.level>=v&&!p.sp.includes(sn)){p.sp.push(sn);logMsg(`☆ ${sn} を覚えた！`);}});nx=p.level*p.level*8;
+    }if(up){playSE('levelUp');logMsg(`★ HP/MP全回復！`);}
+}
+function openShop(t){
+    $id("main-commands").style.display="none";$id("shop-panel").style.display="block";
+    $id("confirm-panel").style.display="none";$id("shop-items").style.display="block";$id("shop-close-btn").style.display="inline-block";
+    if(t==='w'){$id("shop-title").innerText="武器屋";$id("shop-msg").innerText="「へいらっしゃい！」";$id("item-shop-btns").style.display="none";let h="";eq.w.forEach((w,i)=>{h+=`<button class="btn" onclick="reqBuyEq('w',${i})">${w.n} (攻+${w.a}) : ${w.p} G</button><br>`;});$id("shop-items").innerHTML=h;}
+    else{$id("shop-title").innerText="防具・道具屋";$id("shop-msg").innerText="「いらっしゃいませ！」";$id("item-shop-btns").style.display="block";let h="<h3 style='margin-bottom:5px'>鎧</h3>";eq.a.forEach((a,i)=>{h+=`<button class="btn" onclick="reqBuyEq('a',${i})">${a.n} (守+${a.d}) : ${a.p} G</button><br>`;});h+="<h3 style='margin:15px 0 5px'>盾</h3>";eq.s.forEach((s,i)=>{h+=`<button class="btn" onclick="reqBuyEq('s',${i})">${s.n} (守+${s.d}) : ${s.p} G</button><br>`;});$id("shop-items").innerHTML=h;updTorBtn();}
+}
+function reqBuyEq(t,i){bTg={type:'eq',t:t,i:i};let item=t==='w'?eq.w[i]:t==='a'?eq.a[i]:eq.s[i];$id("shop-msg").innerHTML=`${item.n} だね。<br>${item.p} G になるが ほんとうに かうかね？`;$id("shop-items").style.display="none";$id("item-shop-btns").style.display="none";$id("confirm-panel").style.display="block";$id("shop-close-btn").style.display="none";}
+function reqBuyPot(){bTg={type:'pot'};$id("shop-msg").innerHTML=`薬草 だね。<br>10 G になるが ほんとうに かうかね？`;$id("shop-items").style.display="none";$id("item-shop-btns").style.display="none";$id("confirm-panel").style.display="block";$id("shop-close-btn").style.display="none";}
+function reqBuyTor(){bTg={type:'tor'};$id("shop-msg").innerHTML=`たいまつ だね。<br>15 G になるが ほんとうに かうかね？`;$id("shop-items").style.display="none";$id("item-shop-btns").style.display="none";$id("confirm-panel").style.display="block";$id("shop-close-btn").style.display="none";}
+function execBuy(){
+    if(bTg.type==='eq'){
+        let item=bTg.t==='w'?eq.w[bTg.i]:bTg.t==='a'?eq.a[bTg.i]:eq.s[bTg.i];
+        if(p.gold>=item.p){
+            p.gold-=item.p; p.inv[bTg.t].push(bTg.i); playSE('save');
+            logMsg(`\n${item.n} を買った！`);
+            $id("shop-msg").innerHTML=`「装備していくかい？」`;
+            $id("shop-yes-btn").setAttribute("onclick", "execEquip(true)");
+            $id("shop-no-btn").setAttribute("onclick", "execEquip(false)");
+            updateUI();
+            return;
+        }else return noMoney();
+    }else if(bTg.type==='pot'){
+        if(p.gold>=10){p.gold-=10;p.pot++;playSE('save');logMsg(`\n薬草を買った！`);}else return noMoney();
+    }else if(bTg.type==='tor'){
+        if(torSt<=0)return;if(p.gold>=15){p.gold-=15;p.tor++;torSt--;playSE('save');logMsg(`\nたいまつを買った！`);}else return noMoney();
+    }
+    updateUI();cancelBuy(true);
+}
+function execEquip(doEquip){
+    if(doEquip){
+        equipItem(bTg.t, bTg.i);
+    } else {
+        logMsg(`\n${eq[bTg.t][bTg.i].n} を 道具袋にしまった。`);
+    }
+    $id("shop-yes-btn").setAttribute("onclick", "execBuy()");
+    $id("shop-no-btn").setAttribute("onclick", "cancelBuy(false)");
+    cancelBuy(true);
+}
+function noMoney(){$id("shop-msg").innerHTML=`<span style="color:#f55">金が足りないようじゃ！</span>`;setTimeout(()=>cancelBuy(false),1000);}
+function cancelBuy(ok){
+    $id("confirm-panel").style.display="none";$id("shop-items").style.display="block";$id("shop-close-btn").style.display="inline-block";
+    $id("shop-yes-btn").setAttribute("onclick", "execBuy()");
+    $id("shop-no-btn").setAttribute("onclick", "cancelBuy(false)");
+    let t=(bTg&&bTg.type==='eq')?bTg.t:'a';if(t==='w'||t==='a'||t==='s')openShop(t==='w'?'w':'a');
+    if(!ok)updateUI();
+}
+function closeShop(){$id("shop-panel").style.display="none";$id("main-commands").style.display="block";renderMainCmds();logMsg(`\n店を出た。`);}
+function updTorBtn(){const b=$id("torch-btn");if(torSt>0){b.innerHTML=`たいまつを買う (15 G) [残:${torSt}]`;b.disabled=false;}else{b.innerHTML=`たいまつ売切 [あと${15-batT}戦]`;b.disabled=true;}}
+
+function openInv(){$id("main-commands").style.display="none";$id("inv-panel").style.display="block";renderInv();}
+function closeInv(){$id("inv-panel").style.display="none";$id("main-commands").style.display="block";}
+function renderInv(){
+    let h="";
+    const rc=(type,title,pN)=>{
+        h+=`<h3 style="margin:10px 0 5px; border-bottom:1px solid #555; color:#fff">${title}</h3>`;
+        let eF=false; let c=0;
+        p.inv[type].forEach((id,idx)=>{
+            c++;
+            let item=eq[type][id],sP=Math.floor(item.p*0.1);
+            h+=`<div style="margin-bottom:8px; display:flex; align-items:center; gap:10px"><span style="flex-grow:1">${item.n}</span>`;
+            if(p[pN]===item.n&&!eF){h+=`<span style="color:gold; font-weight:bold; width:120px; text-align:center">[装備中]</span>`;eF=true;}
+            else{h+=`<button class="btn" style="padding:4px 8px;font-size:14px; margin:0" onclick="equipItem('${type}',${id})">装備</button><button class="btn" style="padding:4px 8px;font-size:14px; margin:0; border-color:#f55; color:#f55" onclick="sellItem('${type}',${idx})">売る(${sP}G)</button>`;}
+            h+=`</div>`;
+        });
+        if(c===0) h+=`<p style="color:#bbb;margin:5px 0">なにも持っていない</p>`;
+    };
+    rc('w','武器','wN');rc('a','鎧','aN');rc('s','盾','sN');
+    
+    // 道具
+    h+=`<h3 style="margin:10px 0 5px; border-bottom:1px solid #555; color:#fff">どうぐ</h3>`;
+    if(p.pot===0 && p.tor===0){
+        h+=`<p style="color:#bbb;margin:5px 0">なにも持っていない</p>`;
+    } else {
+        if(p.pot>0){
+            h+=`<div style="margin-bottom:8px; display:flex; align-items:center; gap:10px"><span style="flex-grow:1">薬草 (残:${p.pot})</span>`;
+            h+=`<button class="btn" style="padding:4px 8px;font-size:14px; margin:0; border-color:#8f8; color:#8f8" onclick="usePotInv()">使う</button>`;
+            h+=`<button class="btn" style="padding:4px 8px;font-size:14px; margin:0; border-color:#f55; color:#f55" onclick="sellItem('pot')">売る(1G)</button></div>`;
+        }
+        if(p.tor>0){
+            h+=`<div style="margin-bottom:8px; display:flex; align-items:center; gap:10px"><span style="flex-grow:1">たいまつ (残:${p.tor})</span>`;
+            h+=`<button class="btn" style="padding:4px 8px;font-size:14px; margin:0; border-color:#f55; color:#f55" onclick="sellItem('tor')">売る(1G)</button></div>`;
+        }
+    }
+    $id("inv-list").innerHTML=h;
+}
+function usePotInv(){
+    if(p.pot>0){
+        if(p.hp>=p.maxHp) { logMsg(`\nHPは 満タンだ！`); return; }
+        p.pot--; p.hp=Math.min(p.maxHp,p.hp+40);
+        playSE('heal'); logMsg(`\n薬草を使った！HPが回復した！`);
+        updateUI(); renderInv();
+    }
+}
+function equipItem(t,id){
+    let item=eq[t][id];if(t==='w'){p.wN=item.n;p.wA=item.a;}if(t==='a'){p.aN=item.n;p.aD=item.d;}if(t==='s'){p.sN=item.n;p.sD=item.d;}
+    playSE('save');logMsg(`\n${item.n} を装備した！`);updateUI();if($id("inv-panel").style.display==="block")renderInv();
+}
+function sellItem(t,idx){
+    if(t==='pot'){
+        p.pot--; p.gold+=1; playSE('save'); logMsg(`\n薬草を 1G で売った！`);
+    }else if(t==='tor'){
+        p.tor--; p.gold+=1; playSE('save'); logMsg(`\nたいまつを 1G で売った！`);
+    }else{
+        let id=p.inv[t][idx],item=eq[t][id],sP=Math.floor(item.p*0.1);p.gold+=sP;p.inv[t].splice(idx,1);
+        playSE('save');logMsg(`\n${item.n} を ${sP}G で売った！`);
+    }
+    updateUI();renderInv();
+}
+
+function restAtInn(){if(innCd>0)return;let c=getInnCost();if(p.gold>=c){p.gold-=c;p.hp=p.maxHp;p.mp=p.maxMp;p.sil=p.slp=0;innCd=3;playSE('inn');logMsg(`\n宿に泊まった！HP/MP全回復！`);updateUI();}else logMsg(`金が足りない！`);}
+function pBtlSys(){if(innCd>0)innCd--;batT++;if(batT>=15){if(torSt<10)logMsg(`\n※ たいまつ再入荷！`);torSt=10;batT=0;}}
+
+function encounter(si){cStg=si;let s=stg[si];if(s.e.length===0)return;if(si>=3&&Math.random()<.03)return sBtl(28,s.n);sBtl(s.e[Math.floor(Math.random()*s.e.length)],s.n);}
+function encBoss(si){
+    cStg=si;let s=stg[si];
+    if(s.b!==undefined&&!defBoss[s.b]){
+        if(s.b === 38) startRyuouEvent();
+        else sBtl(s.b,s.n+"の奥地");
+    }
+}
+function sBtl(mi,ln){
+    $id("main-commands").style.display=$id("post-battle-commands").style.display="none";$id("battle-commands").style.display="block";
+    cMon={...ms[mi],maxHp:ms[mi].hp,oI:mi,slp:0,sil:0,enr:false};
+    logMsg(`\n--- 【${ln}】 ---`);if(cMon.b)logMsg(`すさまじい 威圧感だ……！！`);logMsg(`${cMon.n} があらわれた！`);updateUI();
+}
+
+/* 竜王イベント処理 */
+function startRyuouEvent(){
+    $id("main-commands").style.display="none";
+    $id("ryuou-event-screen").style.display="flex";
+    ryStep = 1;
+    $id("ryuou-msg").innerHTML=`よくぞ来た　${p.name}よ。わしが　王の中の王　竜王である。<br>わしは　待っておった。そなたのような若者が　あらわれることを。<br><br>もし、わしの味方になれば世界の半分を${p.name}にやろう。<br>どうじゃ？　わしの味方になるか?`;
+    $id("ryuou-choices").style.display="flex";
+    $id("ry-next").style.display="none";
+}
+function ryuouAns(isYes) {
+    if(ryStep === 1) {
+        if(isYes) {
+            ryStep = 3;
+            $id("ryuou-msg").innerHTML=`本当だな？`;
+        } else {
+            ryStep = 2;
+            $id("ryuou-msg").innerHTML=`どうした? 世界の半分を　ほしくはないのか?<br><br>わるい話では　あるまい。`;
+        }
+    } else if (ryStep === 2) {
+        if(isYes) {
+            ryStep = 3;
+            $id("ryuou-msg").innerHTML=`本当だな？`;
+        } else {
+            $id("ryuou-choices").style.display="none";
+            $id("ryuou-msg").innerHTML=`では　どうしても<br>このわしを　たおすと　いうのだな!<br>おろか者め!　思い知るがよい!`;
+            $id("ry-next").style.display="inline-block";
+            $id("ry-next").setAttribute("onclick", "endRyuouEventAndBattle()");
+        }
+    } else if (ryStep === 3) {
+        if(isYes) {
+            $id("ryuou-choices").style.display="none";
+            $id("ryuou-msg").innerHTML=`では世界の半分、闇の世界を与えよう!<br>そして……そなたに復活の呪文を教えよう!<br>これを書き留めておくのだぞ。<br>お前の旅は終わった。さあ、ゆっくり休むがよい!<br>わあっはっはっはっ。`;
+            $id("ry-next").style.display="inline-block";
+            $id("ry-next").setAttribute("onclick", "executeBadEnd()");
+        } else {
+            ryStep = 2;
+            $id("ryuou-msg").innerHTML=`どうした? 世界の半分を　ほしくはないのか?<br><br>わるい話では　あるまい。`;
+        }
+    }
+}
+function endRyuouEventAndBattle(){
+    $id("ryuou-event-screen").style.display="none";
+    sBtl(38, "竜王の間");
+}
+function executeBadEnd(){
+    $id("ryuou-event-screen").style.display="none";
+    $id("main-commands").style.display="none";
+    $id("status-panel").style.display="none";
+    $id("log").style.display="none";
+    
+    let fz = document.createElement("div");
+    fz.style.position="fixed"; fz.style.top="0"; fz.style.left="0"; fz.style.width="100vw"; fz.style.height="100vh";
+    fz.style.backgroundColor="#000"; fz.style.zIndex="999999"; fz.style.display="flex"; fz.style.alignItems="center"; fz.style.justifyContent="center"; fz.style.flexDirection="column";
+    fz.innerHTML = "<div id='glitch-text' style='color:#f00; font-family:monospace; font-size:24px; display:none; text-align:center;'></div>";
+    document.body.appendChild(fz);
+
+    playSE('reset');
+    
+    setTimeout(()=>{
+        $id('glitch-text').style.display="block";
+        $id('glitch-text').innerText = "FATAL ERROR...";
+    }, 800);
+
+    setTimeout(()=>{
+        $id('glitch-text').innerText += "\n\nREBOOTING SYSTEM...";
+    }, 1600);
+
+    setTimeout(()=>{
+        location.reload();
+    }, 3500);
+}
+
+function chkSt(e,ip){let n=ip?p.name:cMon.n;if(e.sil>0)e.sil--;if(e.slp>0){e.slp--;if(e.slp<=0){logMsg(`\n${n}は目を覚ました！`);return true;}else{logMsg(`\n${n}は眠っている…`);return false;}}return true;}
+function wUpDmg(e,ip){if(e.slp>0&&Math.random()<.4){e.slp=0;logMsg(`${ip?p.name:e.n}は目を覚ました！`);}}
+function sEnTrn(){if(cMon&&cMon.hp>0){enAct=cMon.act||1;eTrn();}}
+function eEnAct(){enAct--;if(enAct>0&&cMon&&cMon.hp>0&&p.hp>0){if(cMon.n==="竜王")logMsg(`\n${cMon.n}の連続行動！`);setTimeout(eTrn,800);}else tglBtns(false);}
+function attack(){
+    if(isAnim)return;tglBtns(true);if(!chkSt(p,true))return setTimeout(sEnTrn,800);
+    let cr=Math.random()<.015,ef=cr?"effect-critical":"effect-slash";
+    pEff(ef,()=>{
+        if(!cr&&Math.random()<(cMon.n==="メタルスライム"?0.5:0.1)){playSE('hit');logMsg(`ミス！当たらなかった！`);}
+        else{
+            let ta=p.atk+p.wA,dmg=0;
+            if(cr){playSE('critical');dmg=Math.max(1,ta*2+Math.floor(Math.random()*10));logMsg(`会心の一撃！${dmg}ダメージ！`);}
+            else{playSE('slash');dmg=Math.max(1,ta-Math.floor(cMon.d*.7)+Math.floor(Math.random()*5));if(cMon.n==="メタルスライム")dmg=Math.random()<.2?1:0;logMsg(`${dmg}ダメージ！`);}
+            cMon.hp-=dmg;wUpDmg(cMon,false);
+        }
+        updateUI();if(cMon.hp<=0)win();else setTimeout(sEnTrn,600);
+    });
+}
+function defend(){if(isAnim)return;tglBtns(true);if(!chkSt(p,true))return setTimeout(sEnTrn,800);p.defend=true;logMsg(`\n身を固めた！`);setTimeout(sEnTrn,600);}
+function useItem(){if(isAnim)return;if(p.pot>0){tglBtns(true);if(!chkSt(p,true))return setTimeout(sEnTrn,800);p.pot--;p.hp=Math.min(p.maxHp,p.hp+40);playSE('heal');logMsg(`\n薬草で40回復！`);updateUI();setTimeout(sEnTrn,600);}else logMsg(`薬草がない！`);}
+function runAway(){
+    if(isAnim)return;tglBtns(true);if(!chkSt(p,true))return setTimeout(sEnTrn,800);
+    if(cMon.b){logMsg(`\n逃げられない！`);return setTimeout(sEnTrn,600);}
+    playSE('run');let ec=Math.max(.1,Math.min(.85,.4+(p.spd+Math.floor(p.level*1.8)-cMon.s)*.02));
+    if(Math.random()<ec){logMsg(`\n逃げ出した！`);setTimeout(()=>{pBtlSys();returnToTown();tglBtns(false);},800);}else{logMsg(`\n回り込まれた！`);setTimeout(sEnTrn,800);}
+}
+function showMagicMenu(){
+    if(isAnim||p.slp>0)return;$id("battle-commands").style.display="none";$id("magic-commands").style.display="block";
+    let h="";p.sp.forEach(s=>{if(s==="ラリホー"&&cMon.n==="ゴーレム")h+=`<button class="btn" onclick="uFlute()">妖精の笛</button>`;else h+=`<button class="btn" onclick="cMag('${s}')">${s}(MP${mgD[s].c})</button>`;});
+    if(p.tor>0)h+=`<button class="btn" style="border-color:orange" onclick="tTor()">たいまつ(${p.tor})</button>`;
+    if(h==="")h="使えるものがない！";$id("magic-list").innerHTML=h;
+}
+function hideMagicMenu(){$id("magic-commands").style.display="none";$id("battle-commands").style.display="block";}
+function uFlute(){tglBtns(true);hideMagicMenu();if(!chkSt(p,true))return setTimeout(sEnTrn,800);logMsg(`\n妖精の笛！`);playSE('rariho');pEff("effect-rariho",()=>{cMon.slp=5;logMsg(`眠りに落ちた！`);updateUI();setTimeout(sEnTrn,800);},800);}
+function tTor(){tglBtns(true);hideMagicMenu();if(!chkSt(p,true))return setTimeout(sEnTrn,800);p.tor--;logMsg(`\nたいまつを投げた！`);if(cMon.n==="メタルスライム"){playSE('hit');logMsg(`効かない！`);updateUI();return setTimeout(sEnTrn,800);}playSE('fire');pEff("effect-gira",()=>{eMagEf("ギラ",true);},400);}
+function cMag(s){
+    let sd=mgD[s];if(p.mp<sd.c)return logMsg(`MP不足！`);tglBtns(true);hideMagicMenu();if(!chkSt(p,true))return setTimeout(sEnTrn,800);
+    if(p.sil>0){logMsg(`\n${s}を唱えたが封じられている！`);p.mp-=sd.c;updateUI();return setTimeout(sEnTrn,800);}
+    p.mp-=sd.c;logMsg(`\n${p.name}は${s}を唱えた！`);
+    if(cMon.n==="メタルスライム"&&["ギラ","ベギラマ","かえんのいき","はげしいほのお","ラリホー","マホトーン"].includes(s)){playSE('hit');logMsg(`効かない！`);updateUI();return setTimeout(sEnTrn,800);}
+    if(s==='ホイミ'||s==='ベホイミ')playSE('heal');else if(s==='ギラ'||s==='ベギラマ'||s==='かえんのいき'||s==='はげしいほのお')playSE('fire');else if(s==='ラリホー')playSE('rariho');else if(s==='マホトーン')playSE('mahoton');
+    updateUI();let et=(s==="ベホイミ"||s==="ラリホー"||s==="はげしいほのお")?800:500;pEff(sd.ef,()=>{eMagEf(s,true);},et);
+}
+function eMagEf(s,ip){
+    let tg=ip?cMon:p,cs=ip?p:cMon;
+    if(s==="ギラ"){let d=ip?40+Math.floor(Math.random()*20):25+Math.floor(Math.random()*10);tg.hp-=d;logMsg(`${d}ダメージ！`);wUpDmg(tg,!ip);}
+    else if(s==="ベギラマ"){let d=ip?100+Math.floor(Math.random()*40):cs.n==="りゅうおう"?90+Math.floor(Math.random()*30):50+Math.floor(Math.random()*20);tg.hp-=d;logMsg(`${d}ダメージ！`);wUpDmg(tg,!ip);}
+    else if(s==="かえんのいき"){let d=40+Math.floor(Math.random()*25);tg.hp-=d;logMsg(`火炎の息！${d}ダメージ！`);wUpDmg(tg,!ip);}
+    else if(s==="はげしいほのお"){let d=cs.n==="竜王"?160+Math.floor(Math.random()*50):80+Math.floor(Math.random()*40);tg.hp-=d;logMsg(`激しい炎！${d}ダメージ！`);wUpDmg(tg,!ip);}
+    else if(s==="ホイミ"){let h=40+Math.floor(Math.random()*15);cs.hp=Math.min(cs.maxHp,cs.hp+h);logMsg(`${h}回復！`);}
+    else if(s==="ベホイミ"){let h=ip?(140+(p.level*3)+Math.floor(Math.random()*40)):60+Math.floor(Math.random()*20);cs.hp=Math.min(cs.maxHp,cs.hp+h);logMsg(`${h}回復！`);}
+    else if(s==="ラリホー"){let sr=ip?0.25:0.5;if(ip&&["がいこつ","しりょう","しりょうのきし","リカント","リカントマムル","キラーリカント"].includes(tg.n))sr=0.8;if(ip&&cMon.b)sr=0;if(Math.random()<sr){tg.slp=3+Math.floor(Math.random()*3);logMsg(`眠りに落ちた！`);}else logMsg(`効かなかった！`);}
+    else if(s==="マホトーン"){if(Math.random()<0.6){tg.sil=3+Math.floor(Math.random()*3);logMsg(`呪文を封じた！`);}else logMsg(`効かなかった！`);}
+    updateUI();if(ip){if(cMon.hp<=0)setTimeout(win,500);else setTimeout(sEnTrn,800);}else{if(p.hp<=0)setTimeout(gameOver,500);else eEnAct();}
+}
+function eTrn(){
+    if(cMon.hp<=0)return;if(!chkSt(cMon,false)){enAct=0;return tglBtns(false);}
+    if(cMon.n==="メタルスライム"&&Math.random()<0.5){logMsg(`\n逃げ出した！`);return setTimeout(()=>{pBtlSys();returnToTown();enAct=0;tglBtns(false);},1000);}
+    if(cMon.n==="竜王"){
+        if(cMon.hp <= cMon.maxHp/2 && !cMon.enr){
+            cMon.enr=true;playSE('critical');
+            logMsg(`\n竜王は 激しく 怒り狂っている！！\n竜王の 猛攻が はじまる！`);
+            updateUI();return setTimeout(eTrn,1200);
+        }
+    }
+    let as=cMon.sp.filter(s=>cMon.m>=mgD[s].c),us=null;
+    if(cMon.n==="竜王"){
+        let r=Math.random();
+        if(cMon.enr){if(r<.25)us="はげしいほのお";else if(r<.40)us="ベギラマ";}
+        else{if(r<.20)us="かえんのいき";else if(r<.40)us="はげしいほのお";else if(r<.60)us="マホトーン";}
+    }
+    else if(cMon.n==="りゅうおう"){if(Math.random()<.70&&as.includes("ベギラマ"))us="ベギラマ";}
+    else{if(as.length>0&&Math.random()<(cMon.b?.7:.4))us=as[Math.floor(Math.random()*as.length)];}
+    if(us){
+        let sd=mgD[us];
+        if(cMon.sil>0&&!["かえんのいき","はげしいほのお"].includes(us)){logMsg(`\n${cMon.n} は ${us} を唱えようとした！\nしかし 呪文はかき消された！`);return setTimeout(eEnAct,800);}
+        cMon.m-=sd.c;let et=(us==="ベホイミ"||us==="ラリホー"||us==="はげしいほのお")?800:500,c=sd.ef;
+        if(us==="はげしいほのお"){if(cMon.n==="竜王"){logMsg(`\n地獄の業火！`);c="effect-ryuou-breath";et=900;playSE('fire');}else{logMsg(`\nはげしいほのお！`);playSE('fire');}}
+        else if(us==="かえんのいき"){logMsg(`\n火炎の息を 吐き出した！`);playSE('fire');}
+        else{logMsg(`\n${us}を放った！`);if(us==='ホイミ'||us==='ベホイミ')playSE('heal');else if(us==='ギラ'||us==='ベギラマ')playSE('fire');else if(us==='ラリホー')playSE('rariho');else if(us==='マホトーン')playSE('mahoton');}
+        updateUI();return pEff(c,()=>{eMagEf(us,false);},et);
+    }
+    if(Math.random()>.95){playSE('hit');logMsg(`\n攻撃ミス！`);return eEnAct();}
+    let td=p.def+p.aD+p.sD,bd=cMon.a-Math.floor(td*.7);
+    if(cMon.n==="竜王"&&cMon.enr)bd=Math.floor(bd*1.2);
+    let dmg=Math.max(1,bd+Math.floor(Math.random()*(cMon.a*.1))),cr=Math.random()<(cMon.enr?0.08:0.005),fc=(cMon.n==="りゅうおう"||cMon.n==="竜王")?"effect-ryuou-attack":"effect-flash";
+    if(cr){dmg=Math.max(1,cMon.a*1.5+Math.floor(Math.random()*10));if(fc==="effect-flash")fc="effect-critical";playSE('critical');}else playSE('hit');
+    if(p.defend){dmg=Math.ceil(dmg/2);p.defend=false;}
+    pEff(fc,()=>{p.hp-=dmg;logMsg(cr?`\n痛恨！${dmg}ダメージ！`:`\n${dmg}ダメージ！`);wUpDmg(p,true);updateUI();if(p.hp<=0)gameOver();else eEnAct();});
+}
+function gameOver(){playSE('dead');logMsg(`\n死んでしまった…。`);updateUI();enAct=0;setTimeout(()=>{showDeadKingPhase();tglBtns(false);},4000);}
+function showDeadKingPhase(){$id("battle-commands").style.display="none";$id("post-battle-commands").style.display="none";$id("dead-king-screen").style.display="flex";$id("dead-king-text").innerHTML=`おお ${p.name} よ！<br>死んでしまうとはなにごとだ！<br>（所持金半減）`;p.gold=Math.floor(p.gold/2);p.hp=p.maxHp;p.mp=p.maxMp;p.slp=0;p.sil=0;cMon=null;p.defend=false;pBtlSys();}
+function finishDeadKingPhase(){$id("dead-king-screen").style.display="none";$id("main-commands").style.display="block";logMsg(`\n再び旅に出た！`);updateUI();}
+function win(){
+    logMsg(`\n倒した！`);pBtlSys();enAct=0;
+    if(cMon.b&&!cMon.tf&&cMon.n!=="りゅうおう")defBoss[cMon.oI]=true;
+    if(cMon.n==="りゅうおう"){
+        logMsg(`\nりゅうおう「真の恐ろしさはこれからだ！」`);cMon={...ms[39],maxHp:ms[39].hp,oI:39,slp:0,sil:0,enr:false};
+        return setTimeout(()=>{logMsg(`\n恐ろしい竜王に変身した！`);updateUI();tglBtns(false);},2000);
+    }
+    if(cMon.tf){
+        defBoss[38]=true;playSE('levelUp');
+        return setTimeout(()=>{
+            $id("clear-screen").style.display="flex";
+            $id("clear-text").innerHTML=`竜王を討ち倒し、世界に光が戻った！<br><br>勇者 ${p.name} は ラダトーム王国へと帰還し、<br>盛大な祝杯があげられた！<br><br>〜 御伽噺は 伝説へ 〜`;
+        },1000);
+    }
+    logMsg(`${cMon.ex} EXP / ${cMon.g} G 入手！`);p.exp+=cMon.ex;p.gold+=cMon.g;chkLvUp();
+    setTimeout(()=>{if(cMon.b){logMsg(`\n街に帰還`);setTimeout(()=>{returnToTown();tglBtns(false);},1500);}else{showPostBtlOpts();tglBtns(false);}},1500);
+}
+function showPostBtlOpts(){cMon=null;p.defend=false;p.slp=0;p.sil=0;hideMagicMenu();$id("battle-commands").style.display="none";$id("post-battle-commands").style.display="block";updateUI();}
+function returnToTown(){cMon=null;p.defend=false;p.slp=0;p.sil=0;hideMagicMenu();$id("post-battle-commands").style.display="none";$id("battle-commands").style.display="none";$id("main-commands").style.display="block";updateUI();}
+</script>
+</body>
+</html>
